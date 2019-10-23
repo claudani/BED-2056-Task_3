@@ -1,0 +1,162 @@
+---
+title: "Task3 - Report"
+author: "Chiara Laudani"
+date: "23-10-2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+library(dplyr)
+library(lubridate) 
+library(ggplot2)
+```
+
+For this week's task, we first have to download the data from the [CDC's webpage](https://www.cdc.gov/nchs/data_access/vitalstatsonline.htm). Since the 2017 and 2018 data files and respective user manuals are very big, they should first be downloaded and stored in the 'data' folder in this task's repository. 
+
+To load the data from the 'data' folder, we can use the read_fwf() function which takes as parameters a list of values as the fixed starting and ending points to read from the file. The exact values can be found from the user guide. It also takes the name for the colums for the categories we have selected, in this case we have "date_of_birth"(9-14), "sex"(475), and "weight_grams"(504-507), for both 2017 and 2018.
+
+```{r, include=FALSE}
+data_2017 <-
+  read_fwf("data/Nat2017PublicUS.c20180516.r20180808.txt",           
+           fwf_positions(start = c(9,475,504),
+                         end = c(14,475,507),
+                         col_names = c("date_of_birth", "sex", "weight_grams")
+           )
+  )
+
+data_2018 <-
+  read_fwf("data/Nat2018PublicUS.c20190509.r20190717.txt",           
+    fwf_positions(start = c(9,475,504),
+                         end = c(14,475,507),
+                         col_names = c("date_of_birth", "sex", "weight_grams")
+           )
+    )
+```
+
+1. What is the proportion of boys to girls? Has it changed between 2017 and 2018? 
+```{r, include=TRUE}
+fm_2017 <- data_2017 %>%
+  summarize(males_perc = sum(data_2017$sex == 'M') / length(data_2017$sex) * 100,
+            female_perc = sum(data_2017$sex == 'F') / length(data_2017$sex) * 100)
+
+fm_2018 <- data_2018 %>%
+  summarize(males_perc = sum(data_2018$sex == 'M') / length(data_2018$sex) * 100,
+            female_perc = sum(data_2018$sex == 'F') / length(data_2018$sex) * 100)
+fm_2017
+fm_2018
+```
+
+As we can see, the proportion has changed very slightly between 2017 and 2018.
+
+
+2. What is the average birth weight in grams?
+
+To find this, we first change the type of the weight field to numeric, to be able to calculate the average. 
+```{r}
+data_2017$weight_grams <- as.numeric(data_2017$weight_grams)
+
+data_2018$weight_grams <- as.numeric(data_2018$weight_grams)
+```
+
+We then remove the rows with value '9999' because - from the guide - we know that that means no weight was registered at birth.
+```{r}
+data_2017 <- data_2017 %>%
+  filter(weight_grams != 9999) 
+  
+data_2018 <- data_2018 %>%
+  filter(weight_grams != 9999) 
+```
+
+Finally we calculate the averages for 2017, 2018, and the overall average for both years. 
+```{r, include=TRUE}
+weights_mean_2017 <- mean(data_2017$weight_grams)
+
+weights_mean_2018 <- mean(data_2018$weight_grams)
+
+overall_mean <- mean(c(weights_mean_2017, weights_mean_2018))
+```
+Average weight in 2017 = `r round(weights_mean_2017, digits = 2)` (grams)
+
+Average weight in 2018 = `r round(weights_mean_2017, digits = 2)` (grams)
+
+Average weight overall = `r round(weights_mean_2017, digits = 2)` (grams)
+
+
+3. Make a density plot on the birth weight between boys and girls in 2018. Is it different?
+
+A density plot represents the distribution of a numeric type variable. To show the probability density function of this variable, a kernel density estimate is used.
+
+```{r}
+f <- data_2018 %>%
+  filter(data_2018$sex == 'F')
+
+m <- data_2018 %>%
+  filter(data_2018$sex == 'M')
+
+d_f_2018 <- density(f$weight_grams)
+d_m_2018 <- density(m$weight_grams)
+
+plot(d_f_2018, main="Density plot for females (2018)",
+     xlab="Number of coordinates of points where density is estimated", ylab="density values")
+
+plot(d_m_2018, main="Density plot for males (2018)",
+     xlab="Number of coordinates of points where density is estimated", ylab="density values")
+```
+
+The two plots are similar, only the peak of the bell-shaped curve seems to be different.  
+
+
+4. Does the average birth weight vary by month and year?
+
+First we have to change the dates' format from YYYYMM to just haveing the month's name. For this we can use the month.name() function. We will have to add a day to the date first though, in order for the as.Date() to function, so we assume the day is always the first of the month. We then just extract the month's name.
+
+```{r}
+data_2017$date_of_birth <- month.name[month(as.Date(paste(data_2017$date_of_birth, "01", sep=""), "%Y%m%d"))]
+data_2018$date_of_birth <- month.name[month(as.Date(paste(data_2018$date_of_birth, "01", sep=""), "%Y%m%d"))]
+```
+
+We then group the weigths by month and summarize the data and calculate the average via the mean() function. 
+
+```{r}
+mean_2017 <- data_2017 %>%
+  group_by(date_of_birth) %>%
+  summarize(m_2017 = mean(weight_grams, na.rm=TRUE))
+  
+mean_2018 <- data_2018 %>%
+  group_by(date_of_birth) %>%
+  summarize(m_2018 = mean(weight_grams, na.rm=TRUE))
+```
+
+To make the plots for each year, we take the means for every month and place those values on the y-axis. On the x-axis we will have the names of the months ordered chronologically. We use a line graph in this case, and for every point the mean value is displayed and rounded with max 2 digits after the decimal point.
+
+```{r}
+ggplot(mean_2017, aes(
+  as.integer(factor(x=date_of_birth, levels=month.name, ordered = T)), 
+  y=m_2017)
+  ) +
+  scale_x_continuous(breaks = 1:12, labels=month.name) +
+  ggtitle("Plot 2017") +
+  xlab("Month (2017)") + 
+  ylab("Average weight (grams)") +
+  geom_line(stat="identity", col="darkgrey") +
+  theme_minimal() +
+  geom_text(aes(label=round(m_2017, digits = 2)), position=position_dodge(width=0.9), vjust=-0.25)
+
+ggplot(mean_2018, aes(
+  as.integer(factor(x=date_of_birth, levels=month.name, ordered = T)), 
+  y=m_2018) 
+  ) +
+  scale_x_continuous(breaks = 1:12, labels=month.name) +
+  ggtitle("Plot 2018") +
+  xlab("Month (2018)") + 
+  ylab("Average weight (grams)") +
+  geom_line(stat="identity", col="darkgrey") +
+  theme_minimal() +
+  geom_text(aes(label=round(m_2018, digits = 2)), position=position_dodge(width=0.9), vjust=-0.25)
+```
+
+We can see from the two plots that the average weight is always around `r round(overall_mean, digits = 2)` grams and it gradually increases from January to May, then drops in June and July, spikes again around September, and finally gradually decreases during the rest of the year until it drops in December. 
+
+
