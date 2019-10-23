@@ -13,13 +13,13 @@ library(lubridate)
 library(ggplot2)
 ```
 
-For this week's task, we first have to download the data from the [CDC's webpage](https://www.cdc.gov/nchs/data_access/vitalstatsonline.htm). Since the 2017 and 2018 data files and respective user manuals are very big, they should first be downloaded and stored in the 'data' folder in this task's repository. 
+For this week's task, we first have to download the data from the [CDC's webpage](https://www.cdc.gov/nchs/data_access/vitalstatsonline.htm). Since the 2017 and 2018 data files and respective user manuals are very big, they should first be downloaded and stored in this task's repository. 
 
-To load the data from the 'data' folder, we can use the read_fwf() function which takes as parameters a list of values as the fixed starting and ending points to read from the file. The exact values can be found from the user guide. It also takes the name for the colums for the categories we have selected, in this case we have "date_of_birth"(9-14), "sex"(475), and "weight_grams"(504-507), for both 2017 and 2018.
+To load the data we can use the read_fwf() function which takes as parameters a list of values as the fixed starting and ending points to read from the file. The exact values can be found from the user guide. It also takes the name for the colums for the categories we have selected, in this case we have "date_of_birth"(9-14), "sex"(475), and "weight_grams"(504-507), for both 2017 and 2018.
 
 ```{r, include=FALSE}
 data_2017 <-
-  read_fwf("data/Nat2017PublicUS.c20180516.r20180808.txt",           
+  read_fwf("Nat2017PublicUS.c20180516.r20180808.txt",           
            fwf_positions(start = c(9,475,504),
                          end = c(14,475,507),
                          col_names = c("date_of_birth", "sex", "weight_grams")
@@ -27,7 +27,7 @@ data_2017 <-
   )
 
 data_2018 <-
-  read_fwf("data/Nat2018PublicUS.c20190509.r20190717.txt",           
+  read_fwf("Nat2018PublicUS.c20190509.r20190717.txt",           
     fwf_positions(start = c(9,475,504),
                          end = c(14,475,507),
                          col_names = c("date_of_birth", "sex", "weight_grams")
